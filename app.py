@@ -67,6 +67,55 @@ def init_db():
         )
     ''')
     
+    # Insertar datos de ejemplo si las tablas están vacías
+    for table in ['comunicados', 'blog', 'comentarios', 'deportes']:
+        count = conn.execute(f'SELECT COUNT(*) as count FROM {table}').fetchone()['count']
+        if count == 0:
+            if table == 'comunicados':
+                conn.execute('''
+                    INSERT INTO comunicados (titulo, contenido, imagen, fecha, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (
+                    'Desfile del Kinder José Antonio Zampa',
+                    'Se convoca a la banda, la promoción y docentes del colegio a asistir al desfile del aniversario del Kinder José Antonio Zampa.',
+                    '../img/com.png',
+                    '2025-09-01',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+            elif table == 'blog':
+                conn.execute('''
+                    INSERT INTO blog (titulo, contenido, imagen, fecha, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (
+                    '¡Campeones del Torneo!',
+                    'Resumen de la emocionante final de fútbol sala.',
+                    'Deportes',
+                    '2025-10-15',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+            elif table == 'comentarios':
+                conn.execute('''
+                    INSERT INTO comentarios (titulo, contenido, imagen, fecha, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (
+                    'Padre de Familia',
+                    'El colegio José María Linares tiene una gran banda. La dedicación de los estudiantes y maestros es realmente admirable.',
+                    '',
+                    '2025-10-18',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+            elif table == 'deportes':
+                conn.execute('''
+                    INSERT INTO deportes (titulo, contenido, imagen, fecha, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (
+                    'Entrenamientos de Básquet y Vóley',
+                    'Se convoca a los estudiantes del equipo de Básquet y Vóley a los entrenamientos con los siguientes horarios.',
+                    '../img/depo.png',
+                    '2025-10-20',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+    
     conn.commit()
     conn.close()
 
@@ -79,7 +128,28 @@ def health_check():
     return jsonify({
         'status': 'ok',
         'message': 'API funcionando correctamente',
-        'timestamp': datetime.utcnow().isoformat() + 'Z'
+        'timestamp': datetime.utcnow().isoformat() + 'Z',
+        'endpoints': {
+            'comunicados': '/api/comunicados',
+            'blog': '/api/blog',
+            'comentarios': '/api/comentarios',
+            'deportes': '/api/deportes'
+        }
+    }), 200
+
+@app.route('/', methods=['GET'])
+def home():
+    """Página de inicio de la API"""
+    return jsonify({
+        'message': 'Bienvenido a la API de José María Linares',
+        'version': '1.0',
+        'endpoints': {
+            'health': '/health',
+            'comunicados': '/api/comunicados',
+            'blog': '/api/blog',
+            'comentarios': '/api/comentarios',
+            'deportes': '/api/deportes'
+        }
     }), 200
 
 # ==================== COMUNICADOS ====================
@@ -117,11 +187,15 @@ def create_comunicado():
         if not data.get('fecha'):
             return jsonify({'error': 'El campo "fecha" es obligatorio'}), 400
         
-        # Validar formato de fecha
+        # Validar formato de fecha (más flexible)
         try:
             datetime.fromisoformat(data['fecha'].replace('Z', '+00:00'))
         except ValueError:
-            return jsonify({'error': 'El campo "fecha" debe estar en formato ISO8601'}), 400
+            # Intentar formato YYYY-MM-DD
+            try:
+                datetime.strptime(data['fecha'], '%Y-%m-%d')
+            except ValueError:
+                return jsonify({'error': 'El campo "fecha" debe estar en formato YYYY-MM-DD o ISO8601'}), 400
         
         # Crear comunicado
         conn = get_db_connection()
@@ -177,8 +251,11 @@ def update_comunicado(id):
             try:
                 datetime.fromisoformat(fecha.replace('Z', '+00:00'))
             except ValueError:
-                conn.close()
-                return jsonify({'error': 'El campo "fecha" debe estar en formato ISO8601'}), 400
+                try:
+                    datetime.strptime(fecha, '%Y-%m-%d')
+                except ValueError:
+                    conn.close()
+                    return jsonify({'error': 'El campo "fecha" debe estar en formato YYYY-MM-DD o ISO8601'}), 400
         
         # Actualizar comunicado
         conn.execute(
@@ -257,7 +334,10 @@ def create_blog():
         try:
             datetime.fromisoformat(data['fecha'].replace('Z', '+00:00'))
         except ValueError:
-            return jsonify({'error': 'El campo "fecha" debe estar en formato ISO8601'}), 400
+            try:
+                datetime.strptime(data['fecha'], '%Y-%m-%d')
+            except ValueError:
+                return jsonify({'error': 'El campo "fecha" debe estar en formato YYYY-MM-DD o ISO8601'}), 400
         
         conn = get_db_connection()
         cursor = conn.execute(
@@ -308,8 +388,11 @@ def update_blog(id):
             try:
                 datetime.fromisoformat(fecha.replace('Z', '+00:00'))
             except ValueError:
-                conn.close()
-                return jsonify({'error': 'El campo "fecha" debe estar en formato ISO8601'}), 400
+                try:
+                    datetime.strptime(fecha, '%Y-%m-%d')
+                except ValueError:
+                    conn.close()
+                    return jsonify({'error': 'El campo "fecha" debe estar en formato YYYY-MM-DD o ISO8601'}), 400
         
         conn.execute(
             '''UPDATE blog 
@@ -384,7 +467,10 @@ def create_comentario():
         try:
             datetime.fromisoformat(data['fecha'].replace('Z', '+00:00'))
         except ValueError:
-            return jsonify({'error': 'El campo "fecha" debe estar en formato ISO8601'}), 400
+            try:
+                datetime.strptime(data['fecha'], '%Y-%m-%d')
+            except ValueError:
+                return jsonify({'error': 'El campo "fecha" debe estar en formato YYYY-MM-DD o ISO8601'}), 400
         
         conn = get_db_connection()
         cursor = conn.execute(
@@ -435,8 +521,11 @@ def update_comentario(id):
             try:
                 datetime.fromisoformat(fecha.replace('Z', '+00:00'))
             except ValueError:
-                conn.close()
-                return jsonify({'error': 'El campo "fecha" debe estar en formato ISO8601'}), 400
+                try:
+                    datetime.strptime(fecha, '%Y-%m-%d')
+                except ValueError:
+                    conn.close()
+                    return jsonify({'error': 'El campo "fecha" debe estar en formato YYYY-MM-DD o ISO8601'}), 400
         
         conn.execute(
             '''UPDATE comentarios 
@@ -511,7 +600,10 @@ def create_deporte():
         try:
             datetime.fromisoformat(data['fecha'].replace('Z', '+00:00'))
         except ValueError:
-            return jsonify({'error': 'El campo "fecha" debe estar en formato ISO8601'}), 400
+            try:
+                datetime.strptime(data['fecha'], '%Y-%m-%d')
+            except ValueError:
+                return jsonify({'error': 'El campo "fecha" debe estar en formato YYYY-MM-DD o ISO8601'}), 400
         
         conn = get_db_connection()
         cursor = conn.execute(
@@ -562,8 +654,11 @@ def update_deporte(id):
             try:
                 datetime.fromisoformat(fecha.replace('Z', '+00:00'))
             except ValueError:
-                conn.close()
-                return jsonify({'error': 'El campo "fecha" debe estar en formato ISO8601'}), 400
+                try:
+                    datetime.strptime(fecha, '%Y-%m-%d')
+                except ValueError:
+                    conn.close()
+                    return jsonify({'error': 'El campo "fecha" debe estar en formato YYYY-MM-DD o ISO8601'}), 400
         
         conn.execute(
             '''UPDATE deportes 
