@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import datetime
+import pytz # Podrías necesitar instalar esta librería (pip install pytz)
 import sqlite3
 from datetime import datetime
 import os
@@ -85,12 +87,13 @@ def init_db():
                 ))
             elif table == 'blog':
                 conn.execute('''
-                    INSERT INTO blog (titulo, contenido, imagen, fecha, created_at)
-                    VALUES (?, ?, ?, ?, ?)
-                ''', (
+                    INSERT INTO blog (titulo, contenido, categoria, imagen, fecha, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (
                     '¡Campeones del Torneo!',
                     'Resumen de la emocionante final de fútbol sala.',
                     'Deportes',
+                    '../img/ejercicio.avif',
                     '2025-10-15',
                     datetime.utcnow().isoformat() + 'Z'
                 ))
