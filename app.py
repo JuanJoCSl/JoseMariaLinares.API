@@ -1,25 +1,12 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import datetime
+import datetime # Podrías necesitar instalar esta librería (pip install pytz)
 import sqlite3
 from datetime import datetime
 import os
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
-from cloudinary.utils import cloudinary_url
-from functools import wraps
 
 app = Flask(__name__)
-
-# Configuración de CORS específica para GitHub Pages
-CORS(app, origins=["https://tuusuario.github.io"])  # Reemplaza con tu dominio de GitHub Pages
-
-# Configuración de Cloudinary desde variable de entorno
-cloudinary.config(secure=True)
-
-# Variable para autenticación (usar variable de entorno en producción)
-API_TOKEN = os.environ.get('API_TOKEN', 'default-secret-token')
+CORS(app)  # Habilitar CORS para todas las rutas
 
 DATABASE = 'comunicados.db'
 
@@ -138,145 +125,6 @@ def init_db():
 # Inicializar DB al arrancar
 init_db()
 
-# ==================== DECORADOR DE AUTENTICACIÓN ====================
-
-def token_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if not token or token != f'Bearer {API_TOKEN}':
-            return jsonify({'error': 'Token de autorización requerido o inválido'}), 401
-        return f(*args, **kwargs)
-    return decorated
-
-# ==================== ENDPOINTS DE CLOUDINARY (CARPETA IMG) ====================
-
-@app.route('/api/images', methods=['GET'])
-def get_images():
-    """Obtiene una lista paginada de imágenes de Cloudinary desde la carpeta 'img'"""
-    try:
-        # Parámetros de paginación y filtrado
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 100, type=int)
-        folder = request.args.get('folder', 'img')  # Carpeta por defecto: 'img'
-        
-        # Obtener imágenes de Cloudinary de la carpeta específica
-        result = cloudinary.api.resources(
-            type="upload",
-            prefix=folder,  # Filtra por la carpeta 'img'
-            max_results=per_page,
-            page=page,
-            sort_by="created_at",
-            direction="desc"
-        )
-        
-        # Formatear la respuesta
-        images = []
-        for resource in result.get('resources', []):
-            images.append({
-                'public_id': resource['public_id'],
-                'filename': os.path.basename(resource['public_id']),
-                'secure_url': resource['secure_url'],
-                'created_at': resource['created_at'],
-                'folder': resource.get('folder', ''),
-                'format': resource.get('format', ''),
-                'bytes': resource.get('bytes', 0)
-            })
-        
-        return jsonify({
-            'images': images,
-            'total_count': result.get('total_count', 0),
-            'page': page,
-            'per_page': per_page,
-            'folder': folder
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': 'Error al obtener imágenes', 'details': str(e)}), 500
-
-@app.route('/api/images', methods=['POST'])
-@token_required
-def upload_image():
-    """Sube una nueva imagen a Cloudinary en la carpeta 'img'"""
-    try:
-        # Validar que se haya enviado un archivo
-        if 'image' not in request.files:
-            return jsonify({'error': 'No se envió ningún archivo'}), 400
-        
-        file = request.files['image']
-        if file.filename == '':
-            return jsonify({'error': 'Nombre de archivo vacío'}), 400
-        
-        # Validar tipo de archivo
-        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'}
-        if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
-            return jsonify({'error': 'Tipo de archivo no permitido. Use PNG, JPG, JPEG, GIF, WEBP o SVG'}), 400
-        
-        # Validar tamaño del archivo (max 10MB)
-        if file.content_length > 10 * 1024 * 1024:
-            return jsonify({'error': 'El archivo no debe superar los 10MB'}), 400
-        
-        # Obtener parámetros adicionales
-        folder = request.form.get('folder', 'img')  # Carpeta por defecto: 'img'
-        public_id = request.form.get('public_id', None)
-        
-        # Subir a Cloudinary
-        upload_result = cloudinary.uploader.upload(
-            file,
-            folder=folder,
-            public_id=public_id,
-            use_filename=True,
-            unique_filename=True,
-            overwrite=False,
-            quality="auto",
-            fetch_format="auto"
-        )
-        
-        # Responder con la información de la imagen subida
-        return jsonify({
-            'public_id': upload_result['public_id'],
-            'filename': os.path.basename(upload_result['public_id']),
-            'secure_url': upload_result['secure_url'],
-            'created_at': upload_result['created_at'],
-            'folder': upload_result.get('folder', ''),
-            'format': upload_result.get('format', ''),
-            'bytes': upload_result.get('bytes', 0),
-            'message': 'Imagen subida exitosamente'
-        }), 201
-        
-    except cloudinary.exceptions.Error as e:
-        return jsonify({'error': 'Error de Cloudinary', 'details': str(e)}), 500
-    except Exception as e:
-        return jsonify({'error': 'Error al subir imagen', 'details': str(e)}), 500
-
-@app.route('/api/images/<path:public_id>', methods=['DELETE'])
-@token_required
-def delete_image(public_id):
-    """Elimina una imagen de Cloudinary"""
-    try:
-        result = cloudinary.uploader.destroy(public_id)
-        
-        if result.get('result') == 'ok':
-            return jsonify({'message': 'Imagen eliminada exitosamente'}), 200
-        else:
-            return jsonify({'error': 'No se pudo eliminar la imagen', 'details': result}), 400
-            
-    except Exception as e:
-        return jsonify({'error': 'Error al eliminar imagen', 'details': str(e)}), 500
-
-@app.route('/api/images/folders', methods=['GET'])
-def get_folders():
-    """Obtiene la lista de carpetas en Cloudinary"""
-    try:
-        result = cloudinary.api.root_folders()
-        return jsonify({
-            'folders': result.get('folders', [])
-        }), 200
-    except Exception as e:
-        return jsonify({'error': 'Error al obtener carpetas', 'details': str(e)}), 500
-
-# ==================== ENDPOINTS EXISTENTES ====================
-
 @app.route('/health', methods=['GET'])
 def health_check():
     """Endpoint de health check"""
@@ -288,8 +136,7 @@ def health_check():
             'comunicados': '/api/comunicados',
             'blog': '/api/blog',
             'comentarios': '/api/comentarios',
-            'deportes': '/api/deportes',
-            'images': '/api/images'
+            'deportes': '/api/deportes'
         }
     }), 200
 
@@ -304,8 +151,7 @@ def home():
             'comunicados': '/api/comunicados',
             'blog': '/api/blog',
             'comentarios': '/api/comentarios',
-            'deportes': '/api/deportes',
-            'images': '/api/images'
+            'deportes': '/api/deportes'
         }
     }), 200
 
