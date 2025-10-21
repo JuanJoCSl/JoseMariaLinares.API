@@ -94,6 +94,16 @@ def init_db():
                     '2025-09-01',
                     datetime.utcnow().isoformat() + 'Z'
                 ))
+                conn.execute('''
+                    INSERT INTO comunicados (titulo, contenido, imagen, fecha, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (
+                    'Entrada el dia viernes 4 de septiembre Acto Cívico a Jose Antonio Zampa',
+                    'Se convoca a la banda, la promoción y docentes del colegio a asistir al desfile del aniversario del Kinder José Antonio Zampa.',
+                    '../img/comm.png',
+                    '2025-09-01',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
             elif table == 'blog':
                 conn.execute('''
                     INSERT INTO blog (titulo, contenido, categoria, imagen, fecha, created_at)
@@ -106,6 +116,28 @@ def init_db():
                     '2025-10-15',
                     datetime.utcnow().isoformat() + 'Z'
                 ))
+                conn.execute('''
+                    INSERT INTO blog (titulo, contenido, categoria, imagen, fecha, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (
+                    '¡Feria de Ciencias 2025',
+                    'Los proyectos más innovadores de este año escolar que demuestran la creatividad y conocimiento científico de nuestros alumnos.',
+                    'Ciencia',
+                    '../img/ciencia.avif',
+                    '2025-10-15',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                conn.execute('''
+                    INSERT INTO blog (titulo, contenido, categoria, imagen, fecha, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (
+                    '¡Nuestra Gran Banda',
+                    'Conozca a los músicos que nos representan con orgullo en cada evento y celebración de nuestra comunidad educativa.',
+                    'Música',
+                    '../img/ciencia.avif',
+                    '2025-10-15',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
             elif table == 'comentarios':
                 conn.execute('''
                     INSERT INTO comentarios (titulo, contenido, imagen, fecha, created_at)
@@ -113,6 +145,16 @@ def init_db():
                 ''', (
                     'Padre de Familia',
                     'El colegio José María Linares tiene una gran banda. La dedicación de los estudiantes y maestros es realmente admirable.',
+                    '',
+                    '2025-10-18',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                conn.execute('''
+                    INSERT INTO comentarios (titulo, contenido, imagen, fecha, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (
+                    'Exalumno',
+                    '"Los estudiantes del colegio son los mejores. Siempre demuestran valores y excelencia académica en cada actividad."',
                     '',
                     '2025-10-18',
                     datetime.utcnow().isoformat() + 'Z'
