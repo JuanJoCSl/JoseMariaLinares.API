@@ -16,8 +16,10 @@ def get_db_connection():
     return conn
 
 def init_db():
-    """Inicializa la base de datos con la tabla comunicados"""
+    """Inicializa la base de datos con todas las tablas necesarias"""
     conn = get_db_connection()
+    
+    # Tabla comunicados
     conn.execute('''
         CREATE TABLE IF NOT EXISTS comunicados (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,6 +30,43 @@ def init_db():
             created_at TEXT NOT NULL
         )
     ''')
+    
+    # Tabla blog
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS blog (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            titulo TEXT NOT NULL,
+            contenido TEXT NOT NULL,
+            imagen TEXT,
+            fecha TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    ''')
+    
+    # Tabla comentarios
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS comentarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            titulo TEXT NOT NULL,
+            contenido TEXT NOT NULL,
+            imagen TEXT,
+            fecha TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    ''')
+    
+    # Tabla deportes
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS deportes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            titulo TEXT NOT NULL,
+            contenido TEXT NOT NULL,
+            imagen TEXT,
+            fecha TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 
@@ -42,6 +81,8 @@ def health_check():
         'message': 'API funcionando correctamente',
         'timestamp': datetime.utcnow().isoformat() + 'Z'
     }), 200
+
+# ==================== COMUNICADOS ====================
 
 @app.route('/api/comunicados', methods=['GET'])
 def get_comunicados():
@@ -178,6 +219,389 @@ def delete_comunicado(id):
         return jsonify({'message': 'Comunicado eliminado exitosamente'}), 200
     except Exception as e:
         return jsonify({'error': 'Error al eliminar comunicado', 'details': str(e)}), 500
+
+# ==================== BLOG ====================
+
+@app.route('/api/blog', methods=['GET'])
+def get_blog():
+    """Obtiene todas las entradas del blog"""
+    try:
+        conn = get_db_connection()
+        blog = conn.execute(
+            'SELECT * FROM blog ORDER BY fecha DESC, created_at DESC'
+        ).fetchall()
+        conn.close()
+        
+        return jsonify([dict(b) for b in blog]), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al obtener blog', 'details': str(e)}), 500
+
+@app.route('/api/blog', methods=['POST'])
+def create_blog():
+    """Crea una nueva entrada de blog"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No se enviaron datos'}), 400
+        
+        if not data.get('titulo'):
+            return jsonify({'error': 'El campo "titulo" es obligatorio'}), 400
+        
+        if not data.get('contenido'):
+            return jsonify({'error': 'El campo "contenido" es obligatorio'}), 400
+        
+        if not data.get('fecha'):
+            return jsonify({'error': 'El campo "fecha" es obligatorio'}), 400
+        
+        try:
+            datetime.fromisoformat(data['fecha'].replace('Z', '+00:00'))
+        except ValueError:
+            return jsonify({'error': 'El campo "fecha" debe estar en formato ISO8601'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.execute(
+            '''INSERT INTO blog (titulo, contenido, imagen, fecha, created_at) 
+               VALUES (?, ?, ?, ?, ?)''',
+            (
+                data['titulo'],
+                data['contenido'],
+                data.get('imagen', ''),
+                data['fecha'],
+                datetime.utcnow().isoformat() + 'Z'
+            )
+        )
+        conn.commit()
+        blog_id = cursor.lastrowid
+        
+        blog = conn.execute(
+            'SELECT * FROM blog WHERE id = ?', (blog_id,)
+        ).fetchone()
+        conn.close()
+        
+        return jsonify(dict(blog)), 201
+    except Exception as e:
+        return jsonify({'error': 'Error al crear entrada de blog', 'details': str(e)}), 500
+
+@app.route('/api/blog/<int:id>', methods=['PUT'])
+def update_blog(id):
+    """Actualiza una entrada de blog"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No se enviaron datos'}), 400
+        
+        conn = get_db_connection()
+        
+        blog = conn.execute('SELECT * FROM blog WHERE id = ?', (id,)).fetchone()
+        if not blog:
+            conn.close()
+            return jsonify({'error': 'Entrada de blog no encontrada'}), 404
+        
+        titulo = data.get('titulo', blog['titulo'])
+        contenido = data.get('contenido', blog['contenido'])
+        imagen = data.get('imagen', blog['imagen'])
+        fecha = data.get('fecha', blog['fecha'])
+        
+        if 'fecha' in data:
+            try:
+                datetime.fromisoformat(fecha.replace('Z', '+00:00'))
+            except ValueError:
+                conn.close()
+                return jsonify({'error': 'El campo "fecha" debe estar en formato ISO8601'}), 400
+        
+        conn.execute(
+            '''UPDATE blog 
+               SET titulo = ?, contenido = ?, imagen = ?, fecha = ?
+               WHERE id = ?''',
+            (titulo, contenido, imagen, fecha, id)
+        )
+        conn.commit()
+        
+        blog_actualizado = conn.execute(
+            'SELECT * FROM blog WHERE id = ?', (id,)
+        ).fetchone()
+        conn.close()
+        
+        return jsonify(dict(blog_actualizado)), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al actualizar blog', 'details': str(e)}), 500
+
+@app.route('/api/blog/<int:id>', methods=['DELETE'])
+def delete_blog(id):
+    """Elimina una entrada de blog"""
+    try:
+        conn = get_db_connection()
+        
+        blog = conn.execute('SELECT * FROM blog WHERE id = ?', (id,)).fetchone()
+        if not blog:
+            conn.close()
+            return jsonify({'error': 'Entrada de blog no encontrada'}), 404
+        
+        conn.execute('DELETE FROM blog WHERE id = ?', (id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'message': 'Entrada de blog eliminada exitosamente'}), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al eliminar blog', 'details': str(e)}), 500
+
+# ==================== COMENTARIOS ====================
+
+@app.route('/api/comentarios', methods=['GET'])
+def get_comentarios():
+    """Obtiene todos los comentarios"""
+    try:
+        conn = get_db_connection()
+        comentarios = conn.execute(
+            'SELECT * FROM comentarios ORDER BY fecha DESC, created_at DESC'
+        ).fetchall()
+        conn.close()
+        
+        return jsonify([dict(c) for c in comentarios]), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al obtener comentarios', 'details': str(e)}), 500
+
+@app.route('/api/comentarios', methods=['POST'])
+def create_comentario():
+    """Crea un nuevo comentario"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No se enviaron datos'}), 400
+        
+        if not data.get('titulo'):
+            return jsonify({'error': 'El campo "titulo" es obligatorio'}), 400
+        
+        if not data.get('contenido'):
+            return jsonify({'error': 'El campo "contenido" es obligatorio'}), 400
+        
+        if not data.get('fecha'):
+            return jsonify({'error': 'El campo "fecha" es obligatorio'}), 400
+        
+        try:
+            datetime.fromisoformat(data['fecha'].replace('Z', '+00:00'))
+        except ValueError:
+            return jsonify({'error': 'El campo "fecha" debe estar en formato ISO8601'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.execute(
+            '''INSERT INTO comentarios (titulo, contenido, imagen, fecha, created_at) 
+               VALUES (?, ?, ?, ?, ?)''',
+            (
+                data['titulo'],
+                data['contenido'],
+                data.get('imagen', ''),
+                data['fecha'],
+                datetime.utcnow().isoformat() + 'Z'
+            )
+        )
+        conn.commit()
+        comentario_id = cursor.lastrowid
+        
+        comentario = conn.execute(
+            'SELECT * FROM comentarios WHERE id = ?', (comentario_id,)
+        ).fetchone()
+        conn.close()
+        
+        return jsonify(dict(comentario)), 201
+    except Exception as e:
+        return jsonify({'error': 'Error al crear comentario', 'details': str(e)}), 500
+
+@app.route('/api/comentarios/<int:id>', methods=['PUT'])
+def update_comentario(id):
+    """Actualiza un comentario"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No se enviaron datos'}), 400
+        
+        conn = get_db_connection()
+        
+        comentario = conn.execute('SELECT * FROM comentarios WHERE id = ?', (id,)).fetchone()
+        if not comentario:
+            conn.close()
+            return jsonify({'error': 'Comentario no encontrado'}), 404
+        
+        titulo = data.get('titulo', comentario['titulo'])
+        contenido = data.get('contenido', comentario['contenido'])
+        imagen = data.get('imagen', comentario['imagen'])
+        fecha = data.get('fecha', comentario['fecha'])
+        
+        if 'fecha' in data:
+            try:
+                datetime.fromisoformat(fecha.replace('Z', '+00:00'))
+            except ValueError:
+                conn.close()
+                return jsonify({'error': 'El campo "fecha" debe estar en formato ISO8601'}), 400
+        
+        conn.execute(
+            '''UPDATE comentarios 
+               SET titulo = ?, contenido = ?, imagen = ?, fecha = ?
+               WHERE id = ?''',
+            (titulo, contenido, imagen, fecha, id)
+        )
+        conn.commit()
+        
+        comentario_actualizado = conn.execute(
+            'SELECT * FROM comentarios WHERE id = ?', (id,)
+        ).fetchone()
+        conn.close()
+        
+        return jsonify(dict(comentario_actualizado)), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al actualizar comentario', 'details': str(e)}), 500
+
+@app.route('/api/comentarios/<int:id>', methods=['DELETE'])
+def delete_comentario(id):
+    """Elimina un comentario"""
+    try:
+        conn = get_db_connection()
+        
+        comentario = conn.execute('SELECT * FROM comentarios WHERE id = ?', (id,)).fetchone()
+        if not comentario:
+            conn.close()
+            return jsonify({'error': 'Comentario no encontrado'}), 404
+        
+        conn.execute('DELETE FROM comentarios WHERE id = ?', (id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'message': 'Comentario eliminado exitosamente'}), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al eliminar comentario', 'details': str(e)}), 500
+
+# ==================== DEPORTES ====================
+
+@app.route('/api/deportes', methods=['GET'])
+def get_deportes():
+    """Obtiene todas las actividades deportivas"""
+    try:
+        conn = get_db_connection()
+        deportes = conn.execute(
+            'SELECT * FROM deportes ORDER BY fecha DESC, created_at DESC'
+        ).fetchall()
+        conn.close()
+        
+        return jsonify([dict(d) for d in deportes]), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al obtener deportes', 'details': str(e)}), 500
+
+@app.route('/api/deportes', methods=['POST'])
+def create_deporte():
+    """Crea una nueva actividad deportiva"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No se enviaron datos'}), 400
+        
+        if not data.get('titulo'):
+            return jsonify({'error': 'El campo "titulo" es obligatorio'}), 400
+        
+        if not data.get('contenido'):
+            return jsonify({'error': 'El campo "contenido" es obligatorio'}), 400
+        
+        if not data.get('fecha'):
+            return jsonify({'error': 'El campo "fecha" es obligatorio'}), 400
+        
+        try:
+            datetime.fromisoformat(data['fecha'].replace('Z', '+00:00'))
+        except ValueError:
+            return jsonify({'error': 'El campo "fecha" debe estar en formato ISO8601'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.execute(
+            '''INSERT INTO deportes (titulo, contenido, imagen, fecha, created_at) 
+               VALUES (?, ?, ?, ?, ?)''',
+            (
+                data['titulo'],
+                data['contenido'],
+                data.get('imagen', ''),
+                data['fecha'],
+                datetime.utcnow().isoformat() + 'Z'
+            )
+        )
+        conn.commit()
+        deporte_id = cursor.lastrowid
+        
+        deporte = conn.execute(
+            'SELECT * FROM deportes WHERE id = ?', (deporte_id,)
+        ).fetchone()
+        conn.close()
+        
+        return jsonify(dict(deporte)), 201
+    except Exception as e:
+        return jsonify({'error': 'Error al crear actividad deportiva', 'details': str(e)}), 500
+
+@app.route('/api/deportes/<int:id>', methods=['PUT'])
+def update_deporte(id):
+    """Actualiza una actividad deportiva"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No se enviaron datos'}), 400
+        
+        conn = get_db_connection()
+        
+        deporte = conn.execute('SELECT * FROM deportes WHERE id = ?', (id,)).fetchone()
+        if not deporte:
+            conn.close()
+            return jsonify({'error': 'Actividad deportiva no encontrada'}), 404
+        
+        titulo = data.get('titulo', deporte['titulo'])
+        contenido = data.get('contenido', deporte['contenido'])
+        imagen = data.get('imagen', deporte['imagen'])
+        fecha = data.get('fecha', deporte['fecha'])
+        
+        if 'fecha' in data:
+            try:
+                datetime.fromisoformat(fecha.replace('Z', '+00:00'))
+            except ValueError:
+                conn.close()
+                return jsonify({'error': 'El campo "fecha" debe estar en formato ISO8601'}), 400
+        
+        conn.execute(
+            '''UPDATE deportes 
+               SET titulo = ?, contenido = ?, imagen = ?, fecha = ?
+               WHERE id = ?''',
+            (titulo, contenido, imagen, fecha, id)
+        )
+        conn.commit()
+        
+        deporte_actualizado = conn.execute(
+            'SELECT * FROM deportes WHERE id = ?', (id,)
+        ).fetchone()
+        conn.close()
+        
+        return jsonify(dict(deporte_actualizado)), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al actualizar actividad deportiva', 'details': str(e)}), 500
+
+@app.route('/api/deportes/<int:id>', methods=['DELETE'])
+def delete_deporte(id):
+    """Elimina una actividad deportiva"""
+    try:
+        conn = get_db_connection()
+        
+        deporte = conn.execute('SELECT * FROM deportes WHERE id = ?', (id,)).fetchone()
+        if not deporte:
+            conn.close()
+            return jsonify({'error': 'Actividad deportiva no encontrada'}), 404
+        
+        conn.execute('DELETE FROM deportes WHERE id = ?', (id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'message': 'Actividad deportiva eliminada exitosamente'}), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al eliminar actividad deportiva', 'details': str(e)}), 500
+
+# ==================== MANEJO DE ERRORES ====================
 
 @app.errorhandler(404)
 def not_found(error):
