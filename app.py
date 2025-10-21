@@ -37,6 +37,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             titulo TEXT NOT NULL,
             contenido TEXT NOT NULL,
+            categoria TEXT NOT NULL,
             imagen TEXT,
             fecha TEXT NOT NULL,
             created_at TEXT NOT NULL
@@ -328,6 +329,9 @@ def create_blog():
         if not data.get('contenido'):
             return jsonify({'error': 'El campo "contenido" es obligatorio'}), 400
         
+        if not data.get('categoria'):
+            return jsonify({'error': 'El campo "categoria" es obligatorio'}), 400
+        
         if not data.get('fecha'):
             return jsonify({'error': 'El campo "fecha" es obligatorio'}), 400
         
@@ -341,11 +345,12 @@ def create_blog():
         
         conn = get_db_connection()
         cursor = conn.execute(
-            '''INSERT INTO blog (titulo, contenido, imagen, fecha, created_at) 
-               VALUES (?, ?, ?, ?, ?)''',
+            '''INSERT INTO blog (titulo, contenido, categoria, imagen, fecha, created_at) 
+               VALUES (?, ?, ?, ?, ?, ?)''',
             (
                 data['titulo'],
                 data['contenido'],
+                data['categoria'],
                 data.get('imagen', ''),
                 data['fecha'],
                 datetime.utcnow().isoformat() + 'Z'
@@ -381,6 +386,7 @@ def update_blog(id):
         
         titulo = data.get('titulo', blog['titulo'])
         contenido = data.get('contenido', blog['contenido'])
+        categoria = data.get('categoria', blog['categoria'])
         imagen = data.get('imagen', blog['imagen'])
         fecha = data.get('fecha', blog['fecha'])
         
@@ -396,9 +402,9 @@ def update_blog(id):
         
         conn.execute(
             '''UPDATE blog 
-               SET titulo = ?, contenido = ?, imagen = ?, fecha = ?
+               SET titulo = ?, contenido = ?, categoria = ?, imagen = ?, fecha = ?
                WHERE id = ?''',
-            (titulo, contenido, imagen, fecha, id)
+            (titulo, contenido, categoria, imagen, fecha, id)
         )
         conn.commit()
         
