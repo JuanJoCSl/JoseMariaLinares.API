@@ -350,7 +350,7 @@ def create_blog():
             (
                 data['titulo'],
                 data['contenido'],
-                data.get('categoria', ''),
+                data.get('categoria', '0000'),
                 data.get('imagen', ''),
                 data['fecha'],
                 datetime.utcnow().isoformat() + 'Z'
