@@ -68,9 +68,19 @@ def init_db():
             created_at TEXT NOT NULL
         )
     ''')
+    # Tabla horarios
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS horarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            titulo TEXT NOT NULL,
+            imagen TEXT,
+            fecha TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    ''')
     
     # Insertar datos de ejemplo si las tablas están vacías
-    for table in ['comunicados', 'blog', 'comentarios', 'deportes']:
+    for table in ['comunicados', 'blog', 'comentarios', 'deportes', 'horarios']:
         count = conn.execute(f'SELECT COUNT(*) as count FROM {table}').fetchone()['count']
         if count == 0:
             if table == 'comunicados':
@@ -118,6 +128,36 @@ def init_db():
                     '2025-10-20',
                     datetime.utcnow().isoformat() + 'Z'
                 ))
+            elif table == 'horarios':
+                conn.execute('''
+                    INSERT INTO horarios (titulo, imagen, fecha, created_at)
+                    VALUES (?, ?, ?, ?)
+                ''', (
+                    'Horario General de Clases',
+                    '../img/horario_general.png',
+                    '2025-01-01',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                # Insertar un segundo horario de ejemplo
+                conn.execute('''
+                    INSERT INTO horarios (titulo, imagen, fecha, created_at)
+                    VALUES (?, ?, ?, ?)
+                ''', (
+                    'Horario Lunes a Jueves',
+                    '../img/horario_lun_jue.png',
+                    '2025-01-01',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                # Insertar un tercer horario de ejemplo
+                conn.execute('''
+                    INSERT INTO horarios (titulo, imagen, fecha, created_at)
+                    VALUES (?, ?, ?, ?)
+                ''', (
+                    'Horario Viernes',
+                    '../img/horario_viernes.png',
+                    '2025-01-01',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
     
     conn.commit()
     conn.close()
@@ -155,6 +195,145 @@ def home():
         }
     }), 200
 
+# ==================== HORARIOS ====================
+
+@app.route('/api/horarios', methods=['GET'])
+def get_horarios():
+    """Obtiene todos los horarios ordenados por fecha descendente"""
+    try:
+        conn = get_db_connection()
+        horarios = conn.execute(
+            'SELECT * FROM horarios ORDER BY fecha DESC, created_at DESC'
+        ).fetchall()
+        conn.close()
+        
+        return jsonify([dict(h) for h in horarios]), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al obtener horarios', 'details': str(e)}), 500
+
+@app.route('/api/horarios', methods=['POST'])
+def create_horario():
+    """Crea un nuevo horario"""
+    try:
+        data = request.get_json()
+        
+        # Validaciones
+        if not data:
+            return jsonify({'error': 'No se enviaron datos'}), 400
+        
+        if not data.get('titulo'):
+            return jsonify({'error': 'El campo "titulo" es obligatorio'}), 400
+        
+        if not data.get('fecha'):
+            return jsonify({'error': 'El campo "fecha" es obligatorio'}), 400
+        
+        # Validar formato de fecha
+        try:
+            datetime.fromisoformat(data['fecha'].replace('Z', '+00:00'))
+        except ValueError:
+            # Intentar formato YYYY-MM-DD
+            try:
+                datetime.strptime(data['fecha'], '%Y-%m-%d')
+            except ValueError:
+                return jsonify({'error': 'El campo "fecha" debe estar en formato YYYY-MM-DD o ISO8601'}), 400
+        
+        # Crear horario
+        conn = get_db_connection()
+        cursor = conn.execute(
+            '''INSERT INTO horarios (titulo, imagen, fecha, created_at) 
+               VALUES (?, ?, ?, ?)''',
+            (
+                data['titulo'],
+                data.get('imagen', ''),
+                data['fecha'],
+                datetime.utcnow().isoformat() + 'Z'
+            )
+        )
+        conn.commit()
+        horario_id = cursor.lastrowid
+        
+        # Obtener el horario creado
+        horario = conn.execute(
+            'SELECT * FROM horarios WHERE id = ?', (horario_id,)
+        ).fetchone()
+        conn.close()
+        
+        return jsonify(dict(horario)), 201
+    except Exception as e:
+        return jsonify({'error': 'Error al crear horario', 'details': str(e)}), 500
+
+@app.route('/api/horarios/<int:id>', methods=['PUT'])
+def update_horario(id):
+    """Actualiza un horario existente"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No se enviaron datos'}), 400
+        
+        conn = get_db_connection()
+        
+        # Verificar que el horario existe
+        horario = conn.execute('SELECT * FROM horarios WHERE id = ?', (id,)).fetchone()
+        if not horario:
+            conn.close()
+            return jsonify({'error': 'Horario no encontrado'}), 404
+        
+        # Preparar campos a actualizar (horarios no tiene campo 'contenido')
+        titulo = data.get('titulo', horario['titulo'])
+        imagen = data.get('imagen', horario['imagen'])
+        fecha = data.get('fecha', horario['fecha'])
+        
+        # Validar fecha si se proporciona
+        if 'fecha' in data:
+            try:
+                datetime.fromisoformat(fecha.replace('Z', '+00:00'))
+            except ValueError:
+                try:
+                    datetime.strptime(fecha, '%Y-%m-%d')
+                except ValueError:
+                    conn.close()
+                    return jsonify({'error': 'El campo "fecha" debe estar en formato YYYY-MM-DD o ISO8601'}), 400
+        
+        # Actualizar horario
+        conn.execute(
+            '''UPDATE horarios 
+               SET titulo = ?, imagen = ?, fecha = ?
+               WHERE id = ?''',
+            (titulo, imagen, fecha, id)
+        )
+        conn.commit()
+        
+        # Obtener el horario actualizado
+        horario_actualizado = conn.execute(
+            'SELECT * FROM horarios WHERE id = ?', (id,)
+        ).fetchone()
+        conn.close()
+        
+        return jsonify(dict(horario_actualizado)), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al actualizar horario', 'details': str(e)}), 500
+
+@app.route('/api/horarios/<int:id>', methods=['DELETE'])
+def delete_horario(id):
+    """Elimina un horario"""
+    try:
+        conn = get_db_connection()
+        
+        # Verificar que el horario existe
+        horario = conn.execute('SELECT * FROM horarios WHERE id = ?', (id,)).fetchone()
+        if not horario:
+            conn.close()
+            return jsonify({'error': 'Horario no encontrado'}), 404
+        
+        # Eliminar horario
+        conn.execute('DELETE FROM horarios WHERE id = ?', (id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'message': 'Horario eliminado exitosamente'}), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al eliminar horario', 'details': str(e)}), 500
 # ==================== COMUNICADOS ====================
 
 @app.route('/api/comunicados', methods=['GET'])
