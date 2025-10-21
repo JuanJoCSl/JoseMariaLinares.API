@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import datetime
-import pytz # Podrías necesitar instalar esta librería (pip install pytz)
+import datetime # Podrías necesitar instalar esta librería (pip install pytz)
 import sqlite3
 from datetime import datetime
 import os
