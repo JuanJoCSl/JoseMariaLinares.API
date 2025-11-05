@@ -4,6 +4,7 @@ import datetime # Podrías necesitar instalar esta librería (pip install pytz)
 import sqlite3
 from datetime import datetime
 import os
+import hashlib  # Para cifrar contraseñas
 
 app = Flask(__name__)
 CORS(app)  # Habilitar CORS para todas las rutas
@@ -15,6 +16,10 @@ def get_db_connection():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
+
+def hash_password(password):
+    """Cifra la contraseña usando SHA-256"""
+    return hashlib.sha256(password.encode()).hexdigest()
 
 def init_db():
     """Inicializa la base de datos con todas las tablas necesarias"""
@@ -78,9 +83,33 @@ def init_db():
             created_at TEXT NOT NULL
         )
     ''')
+
+    conn.execute('''
+    CREATE TABLE IF NOT EXISTS profesores (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        cargo TEXT NOT NULL,
+        area TEXT NOT NULL,
+        especialidad TEXT NOT NULL,
+        numero_celular TEXT NOT NULL,
+        url_foto TEXT,
+        created_at TEXT NOT NULL
+        )
+    ''')
+
+    # NUEVA TABLA: usuarios
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            nombre TEXT NOT NULL,
+            password TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    ''')
     
     # Insertar datos de ejemplo si las tablas están vacías
-    for table in ['comunicados', 'blog', 'comentarios', 'deportes', 'horarios']:
+    for table in ['comunicados', 'blog', 'comentarios', 'deportes', 'horarios', 'profesores', 'usuarios']:
         count = conn.execute(f'SELECT COUNT(*) as count FROM {table}').fetchone()['count']
         if count == 0:
             if table == 'comunicados':
@@ -200,6 +229,350 @@ def init_db():
                     '2025-01-01',
                     datetime.utcnow().isoformat() + 'Z'
                 ))
+            elif table == 'profesores':
+                # Dirección
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Director Silverio Aucachi',
+                    'Director General',
+                    'Dirección',
+                    'Dirección General',
+                    '(591) 7243-8903',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                # Comunicación y Lenguaje
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Fidelia Pinto',
+                    'Docente',
+                    'Comunicación y Lenguaje',
+                    'Lengua Castellana y Literatura',
+                    '(591) 7182-4559',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Blanca',
+                    'Docente',
+                    'Comunicación y Lenguaje',
+                    'Comunicación y Lenguaje',
+                    '(591) 7386-2721',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Tania',
+                    'Docente',
+                    'Comunicación y Lenguaje',
+                    'Comunicación y Lenguaje',
+                    '(591) 7242-1676',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Primitiva',
+                    'Docente',
+                    'Comunicación y Lenguaje',
+                    'Comunicación y Lenguaje',
+                    '(591) 7238-7911',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                # Ciencias Sociales
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Sonia Pinto',
+                    'Docente',
+                    'Ciencias Sociales',
+                    'Ciencias Sociales',
+                    '(591) 6046-0289',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Victor Hugo Alizares',
+                    'Docente',
+                    'Ciencias Sociales',
+                    'Ciencias Sociales',
+                    '(591) 7237-8017',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Paola',
+                    'Docente',
+                    'Ciencias Sociales',
+                    'Ciencias Sociales',
+                    '(591) 7388-5099',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Ramiro',
+                    'Docente',
+                    'Ciencias Sociales',
+                    'Ciencias Sociales',
+                    '(591) 6839-0904',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Amanda',
+                    'Docente',
+                    'Ciencias Sociales',
+                    'Ciencias Sociales',
+                    '(591) 6839-0904',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                # Matemáticas
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Silvia',
+                    'Docente',
+                    'Matemáticas',
+                    'Matemáticas',
+                    '(591) 7238-9130',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Deysi Porco',
+                    'Docente',
+                    'Matemáticas',
+                    'Matemáticas',
+                    '(591) 7388-2135',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Elena',
+                    'Docente',
+                    'Matemáticas',
+                    'Matemáticas',
+                    '(591) 7425-1155',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Carlos Mendieta',
+                    'Docente',
+                    'Matemáticas',
+                    'Matemáticas',
+                    '(591) 7240-8980',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                # Biología y Ciencias Naturales
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Norma',
+                    'Docente',
+                    'Biología y Ciencias Naturales',
+                    'Biología',
+                    '(591) 6791-8787',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Benito Uño',
+                    'Docente',
+                    'Biología y Ciencias Naturales',
+                    'Biología',
+                    '(591) 7385-8231',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                # Lengua Extranjera (Inglés)
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Inés',
+                    'Docente',
+                    'Lengua Extranjera',
+                    'Lengua Extranjera (Inglés)',
+                    '(591) 6840-8389',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Celia',
+                    'Docente',
+                    'Lengua Extranjera',
+                    'Lengua Extranjera (Inglés)',
+                    '(591) 7242-6349',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Cristina Vaca',
+                    'Docente',
+                    'Lengua Extranjera',
+                    'Lengua Extranjera (Inglés)',
+                    '(591) 7243-1818',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                # Psicología y Filosofía
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Ana Liz',
+                    'Docente',
+                    'Psicología y Filosofía',
+                    'Psicología',
+                    '(591) 6841-5872',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Helmer',
+                    'Docente',
+                    'Psicología y Filosofía',
+                    'Psicología',
+                    '(591) 7617-6260',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Virgilia Cruz',
+                    'Docente',
+                    'Psicología y Filosofía',
+                    'Filosofía',
+                    '(591) 7285-2250',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                # Música
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Oscar',
+                    'Docente',
+                    'Técnica',
+                    'Música',
+                    '(591) 7240-1831',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                
+                conn.execute('''
+                    INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    'Prof. Milton Nina',
+                    'Docente',
+                    'Técnica',
+                    'Música',
+                    '(591) 7387-0246',
+                    '',
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+
+            elif table == 'usuarios':
+                contrasena = hash_password('admin123')
+                # Insertar usuarios de ejemplo
+                
+                conn.execute('''
+                    INSERT INTO usuarios (username, nombre, password, created_at)
+                    VALUES (?, ?, ?, ?)
+                ''', (
+                    'admin',
+                    'Administrador del Sistema',
+                    contrasena,
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
+                contrasena = hash_password('anita123')
+                conn.execute('''
+                    INSERT INTO usuarios (username, nombre, password, created_at)
+                    VALUES (?, ?, ?, ?)
+                ''', (
+                    'anais',
+                    'Anais Marca Salazar',
+                    contrasena,
+                    datetime.utcnow().isoformat() + 'Z'
+                ))
     
     conn.commit()
     conn.close()
@@ -209,7 +582,7 @@ init_db()
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Endpoint de health check"""
+    """Endpoint de health check actualizado"""
     return jsonify({
         'status': 'ok',
         'message': 'API funcionando correctamente',
@@ -218,24 +591,395 @@ def health_check():
             'comunicados': '/api/comunicados',
             'blog': '/api/blog',
             'comentarios': '/api/comentarios',
-            'deportes': '/api/deportes'
+            'deportes': '/api/deportes',
+            'horarios': '/api/horarios',
+            'usuarios': '/api/usuarios',
+            'profesores': '/api/profesores'  # Agregar este
         }
     }), 200
 
 @app.route('/', methods=['GET'])
 def home():
-    """Página de inicio de la API"""
+    """Página de inicio de la API actualizada"""
     return jsonify({
         'message': 'Bienvenido a la API de José María Linares',
-        'version': '1.0',
+        'version': '2.0',
         'endpoints': {
             'health': '/health',
             'comunicados': '/api/comunicados',
             'blog': '/api/blog',
             'comentarios': '/api/comentarios',
-            'deportes': '/api/deportes'
+            'deportes': '/api/deportes',
+            'horarios': '/api/horarios',
+            'usuarios': '/api/usuarios',
+            'profesores': '/api/profesores'  # Agregar este
         }
     }), 200
+
+# ==================== PROFESORES ====================
+
+@app.route('/api/profesores', methods=['GET'])
+def get_profesores():
+    """Obtiene todos los profesores ordenados por área y nombre"""
+    try:
+        conn = get_db_connection()
+        profesores = conn.execute(
+            'SELECT * FROM profesores ORDER BY area, nombre'
+        ).fetchall()
+        conn.close()
+        
+        return jsonify([dict(p) for p in profesores]), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al obtener profesores', 'details': str(e)}), 500
+
+@app.route('/api/profesores', methods=['POST'])
+def create_profesor():
+    """Crea un nuevo profesor"""
+    try:
+        data = request.get_json()
+        
+        # Validaciones
+        if not data:
+            return jsonify({'error': 'No se enviaron datos'}), 400
+        
+        if not data.get('nombre'):
+            return jsonify({'error': 'El campo "nombre" es obligatorio'}), 400
+        
+        if not data.get('cargo'):
+            return jsonify({'error': 'El campo "cargo" es obligatorio'}), 400
+        
+        if not data.get('area'):
+            return jsonify({'error': 'El campo "area" es obligatorio'}), 400
+        
+        if not data.get('especialidad'):
+            return jsonify({'error': 'El campo "especialidad" es obligatorio'}), 400
+        
+        if not data.get('numero_celular'):
+            return jsonify({'error': 'El campo "numero_celular" es obligatorio'}), 400
+        
+        # Crear profesor
+        conn = get_db_connection()
+        cursor = conn.execute(
+            '''INSERT INTO profesores (nombre, cargo, area, especialidad, numero_celular, url_foto, created_at) 
+               VALUES (?, ?, ?, ?, ?, ?, ?)''',
+            (
+                data['nombre'],
+                data['cargo'],
+                data['area'],
+                data['especialidad'],
+                data['numero_celular'],
+                data.get('url_foto', ''),
+                datetime.utcnow().isoformat() + 'Z'
+            )
+        )
+        conn.commit()
+        profesor_id = cursor.lastrowid
+        
+        # Obtener el profesor creado
+        profesor = conn.execute(
+            'SELECT * FROM profesores WHERE id = ?', (profesor_id,)
+        ).fetchone()
+        conn.close()
+        
+        return jsonify(dict(profesor)), 201
+    except Exception as e:
+        return jsonify({'error': 'Error al crear profesor', 'details': str(e)}), 500
+
+@app.route('/api/profesores/<int:id>', methods=['PUT'])
+def update_profesor(id):
+    """Actualiza un profesor existente"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No se enviaron datos'}), 400
+        
+        conn = get_db_connection()
+        
+        # Verificar que el profesor existe
+        profesor = conn.execute('SELECT * FROM profesores WHERE id = ?', (id,)).fetchone()
+        if not profesor:
+            conn.close()
+            return jsonify({'error': 'Profesor no encontrado'}), 404
+        
+        # Preparar campos a actualizar
+        nombre = data.get('nombre', profesor['nombre'])
+        cargo = data.get('cargo', profesor['cargo'])
+        area = data.get('area', profesor['area'])
+        especialidad = data.get('especialidad', profesor['especialidad'])
+        numero_celular = data.get('numero_celular', profesor['numero_celular'])
+        url_foto = data.get('url_foto', profesor['url_foto'])
+        
+        # Actualizar profesor
+        conn.execute(
+            '''UPDATE profesores 
+               SET nombre = ?, cargo = ?, area = ?, especialidad = ?, numero_celular = ?, url_foto = ?
+               WHERE id = ?''',
+            (nombre, cargo, area, especialidad, numero_celular, url_foto, id)
+        )
+        conn.commit()
+        
+        # Obtener el profesor actualizado
+        profesor_actualizado = conn.execute(
+            'SELECT * FROM profesores WHERE id = ?', (id,)
+        ).fetchone()
+        conn.close()
+        
+        return jsonify(dict(profesor_actualizado)), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al actualizar profesor', 'details': str(e)}), 500
+
+@app.route('/api/profesores/<int:id>', methods=['DELETE'])
+def delete_profesor(id):
+    """Elimina un profesor"""
+    try:
+        conn = get_db_connection()
+        
+        # Verificar que el profesor existe
+        profesor = conn.execute('SELECT * FROM profesores WHERE id = ?', (id,)).fetchone()
+        if not profesor:
+            conn.close()
+            return jsonify({'error': 'Profesor no encontrado'}), 404
+        
+        # Eliminar profesor
+        conn.execute('DELETE FROM profesores WHERE id = ?', (id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'message': 'Profesor eliminado exitosamente'}), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al eliminar profesor', 'details': str(e)}), 500
+
+@app.route('/api/profesores/<int:id>', methods=['GET'])
+def get_profesor(id):
+    """Obtiene un profesor específico por ID"""
+    try:
+        conn = get_db_connection()
+        profesor = conn.execute(
+            'SELECT * FROM profesores WHERE id = ?', (id,)
+        ).fetchone()
+        conn.close()
+        
+        if not profesor:
+            return jsonify({'error': 'Profesor no encontrado'}), 404
+        
+        return jsonify(dict(profesor)), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al obtener profesor', 'details': str(e)}), 500
+
+# ==================== USUARIOS ====================
+
+@app.route('/api/usuarios', methods=['GET'])
+def get_usuarios():
+    """Obtiene todos los usuarios"""
+    try:
+        conn = get_db_connection()
+        usuarios = conn.execute(
+            'SELECT id, username, nombre, created_at FROM usuarios ORDER BY created_at DESC'
+        ).fetchall()
+        conn.close()
+        
+        return jsonify([dict(u) for u in usuarios]), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al obtener usuarios', 'details': str(e)}), 500
+
+@app.route('/api/usuarios', methods=['POST'])
+def create_usuario():
+    """Crea un nuevo usuario"""
+    try:
+        data = request.get_json()
+        
+        # Validaciones
+        if not data:
+            return jsonify({'error': 'No se enviaron datos'}), 400
+        
+        if not data.get('username'):
+            return jsonify({'error': 'El campo "username" es obligatorio'}), 400
+        
+        if not data.get('nombre'):
+            return jsonify({'error': 'El campo "nombre" es obligatorio'}), 400
+        
+        if not data.get('password'):
+            return jsonify({'error': 'El campo "password" es obligatorio'}), 400
+        
+        # Verificar si el usuario ya existe
+        conn = get_db_connection()
+        usuario_existente = conn.execute(
+            'SELECT id FROM usuarios WHERE username = ?', (data['username'],)
+        ).fetchone()
+        
+        if usuario_existente:
+            conn.close()
+            return jsonify({'error': 'El nombre de usuario ya existe'}), 400
+        
+        # Crear usuario
+        cursor = conn.execute(
+            '''INSERT INTO usuarios (username, nombre, password, created_at) 
+               VALUES (?, ?, ?, ?)''',
+            (
+                data['username'],
+                data['nombre'],
+                hash_password(data['password']),
+                datetime.utcnow().isoformat() + 'Z'
+            )
+        )
+        conn.commit()
+        usuario_id = cursor.lastrowid
+        
+        # Obtener el usuario creado (sin password)
+        usuario = conn.execute(
+            'SELECT id, username, nombre, created_at FROM usuarios WHERE id = ?', (usuario_id,)
+        ).fetchone()
+        conn.close()
+        
+        return jsonify(dict(usuario)), 201
+    except Exception as e:
+        return jsonify({'error': 'Error al crear usuario', 'details': str(e)}), 500
+
+@app.route('/api/usuarios/<int:id>', methods=['PUT'])
+def update_usuario(id):
+    """Actualiza un usuario existente"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No se enviaron datos'}), 400
+        
+        conn = get_db_connection()
+        
+        # Verificar que el usuario existe
+        usuario = conn.execute('SELECT * FROM usuarios WHERE id = ?', (id,)).fetchone()
+        if not usuario:
+            conn.close()
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
+        # Verificar si el nuevo username ya existe (si se está cambiando)
+        if 'username' in data and data['username'] != usuario['username']:
+            usuario_existente = conn.execute(
+                'SELECT id FROM usuarios WHERE username = ? AND id != ?', 
+                (data['username'], id)
+            ).fetchone()
+            
+            if usuario_existente:
+                conn.close()
+                return jsonify({'error': 'El nombre de usuario ya existe'}), 400
+        
+        # Preparar campos a actualizar
+        username = data.get('username', usuario['username'])
+        nombre = data.get('nombre', usuario['nombre'])
+        
+        # Actualizar contraseña solo si se proporciona
+        if 'password' in data and data['password']:
+            password = hash_password(data['password'])
+        else:
+            password = usuario['password']
+        
+        # Actualizar usuario
+        conn.execute(
+            '''UPDATE usuarios 
+               SET username = ?, nombre = ?, password = ?
+               WHERE id = ?''',
+            (username, nombre, password, id)
+        )
+        conn.commit()
+        
+        # Obtener el usuario actualizado (sin password)
+        usuario_actualizado = conn.execute(
+            'SELECT id, username, nombre, created_at FROM usuarios WHERE id = ?', (id,)
+        ).fetchone()
+        conn.close()
+        
+        return jsonify(dict(usuario_actualizado)), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al actualizar usuario', 'details': str(e)}), 500
+
+@app.route('/api/usuarios/<int:id>', methods=['DELETE'])
+def delete_usuario(id):
+    """Elimina un usuario"""
+    try:
+        conn = get_db_connection()
+        
+        # Verificar que el usuario existe
+        usuario = conn.execute('SELECT * FROM usuarios WHERE id = ?', (id,)).fetchone()
+        if not usuario:
+            conn.close()
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
+        # Eliminar usuario
+        conn.execute('DELETE FROM usuarios WHERE id = ?', (id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'message': 'Usuario eliminado exitosamente'}), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al eliminar usuario', 'details': str(e)}), 500
+
+@app.route('/api/usuarios/<int:id>', methods=['GET'])
+def get_usuario(id):
+    """Obtiene un usuario específico por ID"""
+    try:
+        conn = get_db_connection()
+        usuario = conn.execute(
+            'SELECT id, username, nombre, created_at FROM usuarios WHERE id = ?', (id,)
+        ).fetchone()
+        conn.close()
+        
+        if not usuario:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
+        return jsonify(dict(usuario)), 200
+    except Exception as e:
+        return jsonify({'error': 'Error al obtener usuario', 'details': str(e)}), 500
+
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    """Endpoint para autenticación de usuarios"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'message': 'No se enviaron datos'}), 400
+        
+        if not data.get('username'):
+            return jsonify({'success': False, 'message': 'El campo "username" es obligatorio'}), 400
+        
+        if not data.get('password'):
+            return jsonify({'success': False, 'message': 'El campo "password" es obligatorio'}), 400
+        
+        conn = get_db_connection()
+        
+        # Buscar usuario por username
+        user = conn.execute(
+            'SELECT * FROM usuarios WHERE username = ?', (data['username'],)
+        ).fetchone()
+        
+        if not user:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Usuario no encontrado'}), 401
+        
+        # Verificar contraseña (comparar hash)
+        hashed_password = hash_password(data['password'])
+        if user['password'] != hashed_password:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Contraseña incorrecta'}), 401
+        
+        conn.close()
+        
+        # Login exitoso
+        return jsonify({
+            'success': True,
+            'message': 'Login exitoso',
+            'user': {
+                'id': user['id'],
+                'username': user['username'],
+                'nombre': user['nombre']
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': 'Error en el servidor', 'details': str(e)}), 500
+
 
 # ==================== HORARIOS ====================
 
